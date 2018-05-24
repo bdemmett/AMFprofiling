@@ -1,0 +1,137 @@
+---
+title: "Root Sample Inventory for Sequencing"
+output: html_notebook
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+```{r, echo = FALSE}
+##set prefix for home directory
+#windows
+home = 'C:/Users/Bryan/'
+##for mac
+#home = "~/"
+
+```
+
+2017 file metadata was extracted from sample codes
+
+```{r}
+Samples2017 = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/Proposal/Samples_wMetadata_2017_20180403.txt', sep =''), header = TRUE, colClasses = rep("factor"))
+head(Samples2017)
+
+
+
+```
+
+# Check 2016 sample list
+2016 metadata is in separate file, import JGI sample sheet from allyn and join with metadata file
+```{r}
+Samples2016 = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/Proposal/2016SamplesForPacBio_20180403.txt', sep =''), header = TRUE, colClasses = rep("factor"), sep = "\t")
+head(Samples2016)
+
+Md2016 = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/Proposal/JGI_samples_2016_20180403.txt', sep =''), sep = "\t", header = TRUE, colClasses = rep("factor"))
+head(Md2016)
+
+```
+
+* No duplicated samples:
+```{r}
+Samples2016[duplicated(Samples2016),]$Sample.Name. 
+```
+
+
+* create new sample name for linking with JGI metadata sheet
+```{r}
+Samples2016 = Samples2016 %>% 
+  mutate(tmp = gsub("R","", .$Sample_Name)) %>%
+  mutate(SampleName = gsub("-", "_", .$tmp)) %>%
+  select(-tmp)
+head(Samples2016)
+```
+
+## Are any samples in the list that don't have metadata?
+```{r}
+Mdlist = Md2016$JGI_Sample_ID %>% as.character()
+Samples2016 %>% filter(!SampleName %in% Mdlist) 
+```
+* There are 11 samples that names do not match the metadata file
+* Find an example in the metadata file
+```{r}
+Md2016 %>% filter(Location == "Central City, NE" & Date == "2016-07-05" & Geno == "E17" & Rep == "9" & Plot == "16")
+```
+
+* it appears that the first sample checked simply has "-" seperators instead of "_"
+* For purposes of the summary table, all "-" will be substituted with "_" in the metadata file.  Alert Allyn in case the error is important
+
+* Replace dashes with underscore and then check if there are any samples qued for pac bio that are not in the metadata file
+```{r}
+Md2016$JGI_Sample_ID = gsub("-", "_", Md2016$JGI_Sample_ID)
+Mdlist = Md2016$JGI_Sample_ID %>% as.character()
+Samples2016 %>% filter(!SampleName %in% Mdlist) 
+
+```
+* After gsub there are no samples in PacBio list from 2016 that are not in the metadata file
+
+## Make summary table for 2016
+
+```{r}
+#get list of samples for pac bio sequencing and filter metadata table
+Samples2016 = Samples2016 %>% unique
+dim(Samples2016)
+Slist = Samples2016$SampleName %>% as.character()
+#Slist %>% length() %>% paste(., "records in pacbio sample list")
+Slist %>% unique %>% length() #%>% paste("but only", ., "are unique")
+
+PB.md = Md2016 %>% filter(JGI_Sample_ID %in% Slist)
+dim(PB.md)
+head(PB.md)
+colnames(PB.md)
+```
+
+```{r}
+#remove dashes from date field
+PB.md$Date = gsub("-","",PB.md$Date)
+SampleTable2016 = PB.md %>%
+  mutate(DateSite = paste(substr(JGI_Sample_ID,1,2),Date,sep = '_'),
+         Treatment = factor(Treat, levels = c("Full N","Low N", "WW", "WS"))) %>%
+  group_by(Geno, DateSite, Treat) %>%
+  summarize(n = length(Plot)) %>%
+  as.data.frame() %>%
+  spread(key = DateSite, value = n) %>%
+  arrange(desc(CC_20160705), desc(SB_20160827), Geno)
+SampleTable2016
+```
+
+
+* Everything checks out.  Only two samples are missing and they were from eliminated plots per Allyn's e-mail
+
+```{r}
+PB.md$Date %>% head
+PB.md %>% filter(Location == "Central City, NE", Date %in% c("20160913", "20161011")  & Treat == "Full N") %>% arrange(Geno, Date)
+```
+
+
+
+# 2017 sample summary
+```{r}
+Samples2017 %>%
+  group_by(Line, Date, Site, Treatment) %>%
+  summarize(n = length(Plot)) %>%
+  head
+```
+
+```{r}
+SampleTable2017 = Samples2017 %>%
+  mutate(DateSite = paste(Site,Date,sep = '_'),
+         Treatment = factor(Treatment, levels = c("F","L", "W", "D"))) %>%
+  group_by(Line, DateSite, Treatment) %>%
+  summarize(n = length(Plot)) %>%
+  as.data.frame() %>%
+  spread(key = DateSite, value = n) %>%
+  arrange(desc(CC_062817), desc(SB_070717), Line)
+SampleTable2017
+```

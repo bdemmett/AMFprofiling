@@ -1,0 +1,58 @@
+---
+title: "Root Sample Inventory for Sequencing"
+output: html_notebook
+---
+
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+```{r, echo = FALSE}
+##set prefix for home directory
+#windows
+home = 'C:/Users/Bryan/'
+##for mac
+#home = "~/"
+
+```
+
+
+# Check 2016 robot list metadata for completeness
+2016 metadata is in separate file, import JGI sample sheet from allyn and join with metadata file
+```{r}
+Samples2016 = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/Proposal/2016SamplesForPacBio_20180403.txt', sep =''), header = TRUE, colClasses = rep("factor"), sep = "\t")
+dim(Samples2016)
+Samples2016 = Samples2016 %>%
+  separate(Sample_Name, sep = "_", into = c("SampleID","Tag"), remove = FALSE)
+head(Samples2016)
+
+Md2016 = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/Proposal/JGI_samples_2016_20180403.txt', sep =''), sep = "\t", header = TRUE, colClasses = rep("factor"))
+head(Md2016)
+
+RobotMeta = read.delim(file = paste(home,'Box/research/BTI/DOE_SorghumMicrobiome/AMF_PacBio/SampleWorkflow/RobotPrograms/harrison2016_combinedMetadata.txt', sep =''), sep = "\t", header = TRUE, colClasses = rep("factor"))
+
+#remove tag at end of sample ID
+RobotMeta = RobotMeta %>%
+  separate(Sample.Name., sep = "_", into = c("SampleID","Tag"), remove = FALSE)
+
+head(RobotMeta)
+
+
+```
+
+* No duplicated samples:
+```{r}
+RobotMeta[duplicated(RobotMeta$SampleID),]$SampleID 
+```
+
+
+
+## Are any samples in the list that don't have metadata?
+```{r}
+R = RobotMeta$SampleID %>% as.character()
+S = Samples2016$SampleID %>% as.character()
+setdiff(R,S)
+```
+* looks like everything is there
+
