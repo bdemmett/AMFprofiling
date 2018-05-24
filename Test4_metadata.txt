@@ -8,6 +8,6 @@ Barcode	Sample	Source	Amplification	Reactions
 0008	Grassl_R1_Nested_sr	Grassl_R1	Nested	1
 0009	297155_R2_Direct	297155_R2	Direct	3
 0010	297155_R2_Nested	297155_R2	Nested	3
-0011	297155_R3_Direct	297155_R2	Direct	3
+0011	297155_R3_Direct	297155_R3	Direct	3
 0012	297155_R3_Nested	297155_R3	Nested	3
 0013	297155_R3_Nested_sr	297155_R3	Nested	1
